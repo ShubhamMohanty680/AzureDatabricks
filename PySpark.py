@@ -85,87 +85,110 @@ df3.show()
 
 # COMMAND ----------
 
+# method 3 (using select() & col() )
+from pyspark.sql.functions import col
 
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+df4 = df.select(col("Name"), col("IATA"))
+df4.show(5)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df4 = df.select(col("Name").alias("Airline Name"), col("IATA"), col("Active").alias("Status"))
+df4.show(5)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Adding new columns to the dataframe
 
 # COMMAND ----------
 
+# method 1 (using lit() )
 
+from pyspark.sql.functions import lit
 
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+df5 = df.withColumn("Airplane Model", lit("Airbus A320"))
+df5.show(5)
 
 # COMMAND ----------
 
+# method 2
 
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+for i in range(df.select("Name").count()):
+    pass
+df6 = df.withColumn("X", lit(i))
+df6 = df6.withColumn("Y", lit(i//2))
+df6 = df6.withColumn("Prod", lit(col("X")*col("Y")))
+df6.show(5)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Filtering from dataframe
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.filter(df.Name == "135 Airways").show()
 
 # COMMAND ----------
 
+from pyspark.sql.functions import col
 
-
-# COMMAND ----------
-
-
+df.filter(col("Name") == "135 Airways").show()
 
 # COMMAND ----------
 
+df.filter((col("Name")=="135 Airways") | (col("Country")=="Russia")).show()
 
+# COMMAND ----------
+
+df.filter((col("Name")=="135 Airways") & (col("Country")=="Russia")).show()
+
+# COMMAND ----------
+
+df.filter(col("Country") != "Russia").show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Sorting the dataframe
+
+# COMMAND ----------
+
+# method 1 (using sort() function )
+
+df.sort(df.Name).show()
+
+# COMMAND ----------
+
+df.sort(col("Name").desc()).show()
+
+# COMMAND ----------
+
+# method2 (using orderBy() )
+
+df.orderBy(df.Name).show()
+
+# COMMAND ----------
+
+df.orderBy(col("Name").desc()).show()
+
+# COMMAND ----------
+
+# sorting via multiple columns
+
+df.sort(col("Name"), col("Country")).show(10)
+
+# COMMAND ----------
+
+df.sort(col("Country"), col("Name")).show(10)
+
+# COMMAND ----------
+
+df.sort(col("Country"), col("Name").desc()).show(50)
 
 # COMMAND ----------
 
