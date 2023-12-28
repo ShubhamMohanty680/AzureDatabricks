@@ -257,89 +257,131 @@ df9.groupBy("ID").sum("Marks").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df9.groupBy("ID", "Name").sum("Marks").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df9.groupBy("ID", "Name").max("Marks").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df9.groupBy("ID", "Name").min("Marks").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df9.groupBy("ID", "Name").avg("Marks").show()
 
 # COMMAND ----------
 
+sampleData = [("James","Sales","NY",90000,34,10000),
+    ("Michael","Sales","NY",86000,56,20000),
+    ("Robert","Sales","CA",81000,30,23000),
+    ("Maria","Finance","CA",90000,24,23000),
+    ("Raman","Finance","CA",99000,40,24000),
+    ("Scott","Finance","NY",83000,36,19000),
+    ("Jen","Finance","NY",79000,53,15000),
+    ("Jeff","Marketing","CA",80000,25,18000),
+    ("Kumar","Marketing","NY",91000,50,21000)
+  ]
 
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+schema = ["employee_name","department","state","salary","age","bonus"]
+df10 = spark.createDataFrame(data=sampleData, schema = schema)
+df10.show(truncate=False)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df10.groupBy("department").sum("salary").show()
 
 # COMMAND ----------
 
+# groupby multiple columns & agg
 
+from pyspark.sql.functions import count
 
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+df10.groupBy("department", "state").agg(count("*").alias("count")).show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df10.createOrReplaceTempView("emp_temp")
 
 # COMMAND ----------
 
-
+# MAGIC %sql
+# MAGIC
+# MAGIC select department, max(salary) from emp_temp group by department;
 
 # COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select department, sum(salary) from emp_temp group by department;
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Save dataframe into csv file
+
+# COMMAND ----------
+
+df10.write.csv("dbfs:/user/hive/warehouse/employees.csv")
+
+# COMMAND ----------
+
+spark.read.format("csv").load("dbfs:/user/hive/warehouse/employees.csv").show()
+
+# COMMAND ----------
+
+df10.write.mode("append").csv("dbfs:/user/hive/warehouse/employees.csv")
+
+# COMMAND ----------
+
+spark.read.format("csv").load("dbfs:/user/hive/warehouse/employees.csv").show()
+
+# COMMAND ----------
+
+df10.write.mode("overwrite").csv("dbfs:/user/hive/warehouse/employees.csv")
+
+# COMMAND ----------
+
+spark.read.format("csv").load("dbfs:/user/hive/warehouse/employees.csv").show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Merging dataframes
+
+# COMMAND ----------
+
+sampleData = [("James","Sales","NY",90000,34,10000),
+    ("Michael","Sales","NY",86000,56,20000),
+    ("Robert","Sales","CA",81000,30,23000),
+    ("Maria","Finance","CA",90000,24,23000),
+    ("Raman","Finance","CA",99000,40,24000),
+  ]
+
+schema = ["employee_name","department","state","salary","age","bonus"]
+emp_df1 = spark.createDataFrame(data=sampleData, schema = schema)
+emp_df1.show(truncate=False)
+
+# COMMAND ----------
+
+sampleData = [
+    ("Scott","Finance","NY",83000,36,19000),
+    ("Jen","Finance","NY",79000,53,15000),
+    ("Jeff","Marketing","CA",80000,25,18000),
+    ("Kumar","Marketing","NY",91000,50,21000)
+  ]
+
+schema = ["name","department","state","salary","age","bonus"]
+emp_df2 = spark.createDataFrame(data=sampleData, schema = schema)
+emp_df2.show(truncate=False)
+
+# COMMAND ----------
+
+# Method 1 (using union())
+# to use union we should keep in mind that the schema of both the tables should be the same
 
 
 
