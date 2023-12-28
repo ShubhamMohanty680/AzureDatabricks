@@ -1,4 +1,11 @@
 # Databricks notebook source
+sch = "year int, month string, passengers int"
+
+df_input = spark.readStream.option("header", True).schema(sch).csv('/FileStore/tables/')
+display(df_input)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC
 # MAGIC #### Reading file from storage
@@ -192,39 +199,61 @@ df.sort(col("Country"), col("Name").desc()).show(50)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Removing duplicate values from dataframe
 
 # COMMAND ----------
 
+# create a dataframe with duplicate records
 
+columns = ["language","users_count", "version"]
+data = [("Java", "20000", "4.8"), ("Python", "100000", "3.7"), ("Scala", "3000", "2.1"), ("Java", "20000", "4.8"), ("Python", "15000", "3.9")]
 
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+df8 = spark.createDataFrame(data=data, schema=columns)
+display(df8)
 
 # COMMAND ----------
 
+# method 1 (using distinct() )
+# distinct() checks all the columns, removes only if all the columns are same
 
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+df8.distinct().show()
 
 # COMMAND ----------
 
+# method 2 (using dropDuplicates() )
+# can check specfic columns too
 
+df8.dropDuplicates(["language"]).show()
+
+# COMMAND ----------
+
+df8.dropDuplicates(["version"]).show()
+
+# COMMAND ----------
+
+df8.dropDuplicates(["language", "version"]).show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Using groupBy()
+
+# COMMAND ----------
+
+columns = ["ID", "Name", "Marks"]
+
+data = [(1, "Vishal", 60), (2, "Utkarsh", 50), (1, "Vishal", 80), (3, "Sunil", 20), (2, "Utkarsh", 30)]
+
+df9 = spark.createDataFrame(data=data, schema=columns)
+
+display(df9)
+
+# COMMAND ----------
+
+df9.groupBy("ID").sum("Marks").show()
 
 # COMMAND ----------
 
