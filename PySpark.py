@@ -412,6 +412,324 @@ new_emp_df.show()
 
 # COMMAND ----------
 
+# using select()
+
+new_emp_df1 = emp_df1.select(col("employee_name"),col("department"),col("state"),when(col("state")=="NY", "New York").when(col("state")=="CA", "California").otherwise("Unknown").alias("full_state_name"))
+new_emp_df1.show()
+
+# COMMAND ----------
+
+new_emp_df2 = emp_df1.select(col("*"),when(col("state")=="NY", "New York").when(col("state")=="CA", "California").otherwise("Unknown").alias("state_full_name"))
+new_emp_df2.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Joining Dataframe
+
+# COMMAND ----------
+
+sampleData = [
+    ("Scott","Finance","NY",83000,36,19000),
+    ("Jen","Finance","NY",79000,53,15000),
+    ("Jeff","Marketing","CA",80000,25,18000),
+    ("Kumar","Marketing","NY",91000,50,21000)
+  ]
+
+schema = ["employee_name","department","state","salary","age","bonus"]
+emp_df2 = spark.createDataFrame(data=sampleData, schema = schema)
+emp_df2.show(truncate=False)
+
+# COMMAND ----------
+
+sampleData = [("James","Sales","NY",90000,34,10000),
+    ("Michael","Sales","NY",86000,56,20000),
+    ("Robert","Sales","CA",81000,30,23000),
+    ("Maria","Finance","CA",90000,24,23000),
+    ("Raman","Finance","CA",99000,40,24000),
+  ]
+
+schema = ["employee_name","department","state","salary","age","bonus"]
+emp_df1 = spark.createDataFrame(data=sampleData, schema = schema)
+emp_df1.show(truncate=False)
+
+# COMMAND ----------
+
+emp_df1.join(emp_df2, emp_df1.state == emp_df2.state, "inner").show()
+
+# COMMAND ----------
+
+emp_df1.join(emp_df2, emp_df1.state == emp_df2.state, "left").show()
+
+# COMMAND ----------
+
+emp_df1.join(emp_df2, emp_df1.state == emp_df2.state, "right").show()
+
+# COMMAND ----------
+
+emp_df1.alias("A").join(emp_df2.alias("B"), col("A.state") == col("B.state"), "inner").show()
+
+# COMMAND ----------
+
+emp_df1.alias("A").join(emp_df2.alias("B"), col("A.department") == col("B.department"), "inner").select(col("A.employee_name"), col("B.state")).show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Window Functions
+
+# COMMAND ----------
+
+all_emp_df = emp_df1.union(emp_df2)
+all_emp_df.show()
+
+# COMMAND ----------
+
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number, rank, dense_rank
+
+win = Window.partitionBy("state").orderBy("salary")
+all_emp_df.withColumn("salary_row_number_by_state", row_number().over(win)).show()
+
+# COMMAND ----------
+
+win_rank = Window.partitionBy("state").orderBy(col("salary").desc())
+all_emp_df.withColumn("salary_rank", rank().over(win_rank)).show()
+
+# COMMAND ----------
+
+win_dense_rank = Window.partitionBy("state").orderBy(col("salary").desc())
+dense_rank_df = all_emp_df.withColumn("salary_rank", dense_rank().over(win_dense_rank))
+dense_rank_df.show()
+
+# COMMAND ----------
+
+dense_rank_df.filter(col("salary_rank") == 2).show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Using repartition()
+
+# COMMAND ----------
+
+df.write.format("parquet").mode("overwrite").save("/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from parquet.`/FileStore/tables/airlines/part-00000-tid-3036573212398184268-fee37f5a-9fb0-474b-a19b-a5c77f60f50d-146-1.c000.snappy.parquet`;
+
+# COMMAND ----------
+
+df.repartition(3).write.format("parquet").mode("overwrite").save("/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select count(*) from parquet.`dbfs:/FileStore/tables/airlines/part-00000-tid-872006459334780536-ddeb6ba9-f822-4fc9-bfb0-4dfc77e38fa7-150-1.c000.snappy.parquet`;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select count(*) from parquet.`dbfs:/FileStore/tables/airlines/part-00001-tid-872006459334780536-ddeb6ba9-f822-4fc9-bfb0-4dfc77e38fa7-151-1.c000.snappy.parquet`;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select count(*) from parquet.`dbfs:/FileStore/tables/airlines/part-00002-tid-872006459334780536-ddeb6ba9-f822-4fc9-bfb0-4dfc77e38fa7-152-1.c000.snappy.parquet`;
+
+# COMMAND ----------
+
+display(df)
+
+# COMMAND ----------
+
+df.write.format("parquet").partitionBy("Active").mode("overwrite").save("/FileStore/tables/airlines1")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines1")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines1/Active=N")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines1/Active=Y")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Using partitionBy()
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
 
 
 # COMMAND ----------
