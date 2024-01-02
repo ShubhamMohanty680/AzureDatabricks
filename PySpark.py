@@ -383,27 +383,32 @@ emp_df2.show(truncate=False)
 # Method 1 (using union())
 # to use union we should keep in mind that the schema of both the tables should be the same
 
-
-
-# COMMAND ----------
-
-
+emp_df1.union(emp_df2).show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+emp_df2.union(emp_df1).show()
 
 # COMMAND ----------
 
-
+emp_df1.union(emp_df1).show()
 
 # COMMAND ----------
 
+emp_df1.union(emp_df1).distinct().show()
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### if-else condition
+
+# COMMAND ----------
+
+from pyspark.sql.functions import when, col
+
+new_emp_df = emp_df1.withColumn("state_full_name", when(col("state")=="NY", "New York").when(col("state")=="CA", "California").otherwise("Unknown"))
+new_emp_df.show()
 
 # COMMAND ----------
 
