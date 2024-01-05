@@ -1,7 +1,9 @@
 # Databricks notebook source
+# keeping the cluster alive
+
 sch = "year int, month string, passengers int"
 
-df_input = spark.readStream.option("header", True).schema(sch).csv('/FileStore/tables/')
+df_input = spark.readStream.option("header", True).schema(sch).csv('/FileStore/tables/airlines')
 display(df_input)
 
 # COMMAND ----------
@@ -913,6 +915,81 @@ display(df_pivot)
 # dbutils.fs.put() -> writes the given string to a file
 
 # dbutils.fs.rm() -> removes file or directory
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### insertInto()
+
+# COMMAND ----------
+
+sampleData = [("1", "Vishal", "100"), ("2", "Raj", "200"), ("3", "Batman", "300")]
+
+schema = ["id", "name", "salary"]
+
+df = spark.createDataFrame(data = sampleData, schema = schema)
+df.show()
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create table emp(
+# MAGIC   id int,
+# MAGIC   name varchar(20),
+# MAGIC   salary int
+# MAGIC );
+
+# COMMAND ----------
+
+df.write.insertInto("emp")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from emp;
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
