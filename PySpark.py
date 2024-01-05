@@ -662,155 +662,257 @@ dbutils.fs.ls("/FileStore/tables/emp_data/department=Sales/")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+dbutils.fs.ls("/FileStore/tables/emp_data/department=Finance/state=CA")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+dbutils.fs.ls("/FileStore/tables/emp_data/department=Finance/state=NY")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+spark.read.option("header", "true").csv("/FileStore/tables/emp_data/department=Finance/state=CA").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+spark.read.option("header", "true").csv("/FileStore/tables/emp_data/department=Finance/state=NY").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Creating UDF (User Defined Functions)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+def convertcase(val):
+    c = ""
+    for i in val:
+        if i.islower():
+            c = c + i.upper()
+        else:
+            c = c + i.lower()
+    
+    return c
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+emp_df.show()
 
 # COMMAND ----------
 
+from pyspark.sql.functions import col
 
-
-# COMMAND ----------
-
-
+emp_df.select("employee_name", convertcase(col("employee_name"))).show()
 
 # COMMAND ----------
 
+from pyspark.sql.functions import udf
 
-
-# COMMAND ----------
-
-
+col_convert = udf(convertcase)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+emp_df.select("employee_name", col_convert(col("employee_name")).alias("Case Converted")).show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+emp_df.select("employee_name", col_convert(col("employee_name")), col_convert(col("department")).alias("converted_department")).show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from airlines;
 
 # COMMAND ----------
 
+# use udf in sql
 
-
-# COMMAND ----------
-
-
+spark.udf.register("case_convert_sql", convertcase)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %sql
+# MAGIC
+# MAGIC select case_convert_sql(Active) from airlines;
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Using cast()
 
 # COMMAND ----------
 
+sampleData = [("1", "Vishal", "100"), ("2", "Raj", "200"), ("3", "Batman", "300")]
 
+schema = ["id", "name", "salary"]
 
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+df = spark.createDataFrame(data = sampleData, schema = schema)
+df.show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.printSchema()
 
 # COMMAND ----------
 
+df = df.withColumn("id", df.id.cast("int"))
+df.show()
+df.printSchema()
 
+# COMMAND ----------
+
+df = df.withColumn("id", df.id.cast("int")).withColumn("salary", df.salary.cast("int"))
+df.show()
+df.printSchema()
+
+# COMMAND ----------
+
+sampleData = [("1", "Vishal", "100"), ("2", "Raj", "200"), ("3", "Batman", "300")]
+
+schema = ["id", "name", "salary"]
+
+df = spark.createDataFrame(data = sampleData, schema = schema)
+df.printSchema()
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col
+
+df = df.select(col("id").cast("int").alias("ID"), col("name").alias("Name"), col("salary").cast("int").alias("Salary"))
+
+df.show()
+
+df.printSchema()
+
+# COMMAND ----------
+
+sampleData = [("1", "Vishal", "100"), ("2", "Raj", "200"), ("3", "Batman", "300")]
+
+schema = ["id", "name", "salary"]
+
+df = spark.createDataFrame(data = sampleData, schema = schema)
+df.show()
+
+# COMMAND ----------
+
+df = df.selectExpr('cast(id as int)', 'cast(salary as int)')
+
+df.printSchema()
+
+df.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Handling Null Values
+
+# COMMAND ----------
+
+sampleData = [(1, "Vishal", 100), (2, "Raj", None), (3, None, 300), (4, "Superman", None)]
+
+schema = ["id", "name", "salary"]
+
+df = spark.createDataFrame(data = sampleData, schema = schema)
+
+df.show()
+
+# COMMAND ----------
+
+df = df.na.fill("Batman", "name")
+df.show()
+
+# COMMAND ----------
+
+df.na.fill(150, "salary").show()
+
+# COMMAND ----------
+
+from pyspark.sql.functions import avg
+
+avg_value = df.selectExpr("avg(salary) as avg_salary").collect()[0]['avg_salary']
+
+df.na.fill(avg_value, ["salary"]).show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Pivoting the dataframe
+
+# COMMAND ----------
+
+sampleData = [
+    ("Scott","Finance","NY",83000,36,19000),
+    ("Jen","Finance","NY",79000,53,15000),
+    ("Jeff","Marketing","CA",80000,25,18000),
+    ("Kumar","Marketing","NY",91000,50,21000),
+    ("James","Sales","NY",90000,34,10000),
+    ("Michael","Sales","NY",86000,56,20000),
+    ("Robert","Sales","CA",81000,30,23000),
+    ("Maria","Finance","CA",90000,24,23000),
+    ("Raman","Finance","CA",99000,40,24000)
+  ]
+
+schema = ["employee_name","department","state","salary","age","bonus"]
+emp_df = spark.createDataFrame(data=sampleData, schema = schema)
+
+# COMMAND ----------
+
+display(emp_df)
+
+# COMMAND ----------
+
+# in pyspark pivoting is not possible without aggregation
+
+df_agg = emp_df.groupBy("department", "state").sum("salary", "bonus")
+display(df_agg)
+
+# COMMAND ----------
+
+df_pivot = emp_df.groupBy("department").pivot("state").sum("salary", "bonus")
+display(df_pivot)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Types of mode while reading
+# MAGIC
+
+# COMMAND ----------
+
+# permissive -> sets the corrupted record to null
+
+# dropmalformed -> drops the row of the corrupted record
+
+# failfast -> throws an exception
+
+# badRecordsPath -> Saves the bad records to the specified path
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### dbutils commands
+
+# COMMAND ----------
+
+# dbutils.fs.cp() -> copy file to the given location
+
+# dbutils.fs.head() -> returns upto to the first 'maxBytes' of the data
+
+# dbutils.fs.ls() -> lists all the directories
+
+# dbutils.fs.mkdirs() -> creates directory if doesn't exist
+
+# dbutils.fs.mv() -> moves a file or directory from one location to another
+
+# dbutils.fs.put() -> writes the given string to a file
+
+# dbutils.fs.rm() -> removes file or directory
 
 # COMMAND ----------
 
