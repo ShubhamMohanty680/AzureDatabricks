@@ -953,6 +953,348 @@ df.write.insertInto("emp")
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC
+# MAGIC #### collect() vs select()
+
+# COMMAND ----------
+
+# collect() method retrieves all the data from DataFrame as an array in the driver program. 
+# This can lead to memory issues if the DataFrame is huge.
+ 
+df.collect()
+
+# select() method is used to select one or more columns from a DataFrame. 
+# It returns a new DataFrame with the selected columns.
+ 
+df_new = df.select("name", "salary")
+
+
+# COMMAND ----------
+
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("create_df").getOrCreate()
+
+data = [("John", 25), ("Lisa", 30), ("Charlie", 35), ("Mike", 40), ("Jude", 45)]
+columns = ["name", "age"]
+
+df = spark.createDataFrame(data=data, schema=columns)
+df
+
+
+# COMMAND ----------
+
+df.collect()
+
+# COMMAND ----------
+
+for i in df.collect():
+    print(f"Name is {i.name} and age is {i.age}")
+
+# COMMAND ----------
+
+df.collect()[0:2]
+
+# COMMAND ----------
+
+df.select()
+
+# COMMAND ----------
+
+df.select("*").show()
+
+# COMMAND ----------
+
+df.select("name").show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Working with json files
+
+# COMMAND ----------
+
+spark.read.option("header", "true").text("/FileStore/tables/ny_city.json").show()
+
+# COMMAND ----------
+
+ny_city = spark.read.option("header", "true").option("multiline", "true").json("/FileStore/tables/ny_city.json")
+display(ny_city)
+
+# COMMAND ----------
+
+ny_city.select("collision_id", "contributing_factor_vehicle_1").show()
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create or replace temp view ny_city_temp_view using json options("multiline" True, path '/FileStore/tables/ny_city.json')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from ny_city_temp_view;
+
+# COMMAND ----------
+
+df.write.mode("overwrite").save("/FileStore/tables/ny_city_sink")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/ny_city_sink")
+
+# getting saved in parquet format as it's by default 
+
+# COMMAND ----------
+
+df.write.format("json").mode("overwrite").save("/FileStore/tables/ny_city_sink_new")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/ny_city_sink_new")
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### _SUCCESS , _committed, _started
+
+# COMMAND ----------
+
+# These 3 files are created by DBFS itself in the DBFS directories
+
+#  _started -> It depicts that the process has been stated
+# _committed -> It depicts how many files got created
+# _SUCCESS -> It depicts that the transfer / loading happended successfully
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Working with XML files 
+
+# COMMAND ----------
+
+# MAGIC %fs head '/FileStore/tables/la_city.xml'
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
 
 
 # COMMAND ----------
