@@ -1083,51 +1083,82 @@ dbutils.fs.ls("/FileStore/tables/ny_city_sink_new")
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC
+# MAGIC #### Filling null values
+
+# COMMAND ----------
+
+# Importing necessary libraries
+from pyspark.sql.functions import col
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+from pyspark.sql import SparkSession
+
+# Creating SparkSession object
+spark = SparkSession.builder.appName('null_values').getOrCreate()
+
+# Defining the schema of the DataFrame
+schema = StructType([
+    StructField('id', IntegerType(), True),
+    StructField('name', StringType(), True),
+    StructField('age', IntegerType(), True),
+    StructField('gender', StringType(), True)
+])
+
+# Creating the DataFrame with some null values
+data = [(1, 'Alice', 25, 'Female'),
+        (2, None, 30, 'Male'),
+        (3, 'Bob', None, 'Male'),
+        (4, 'Claire', 28, None),
+        (5, 'David', 35, 'Male')
+       ]
+df = spark.createDataFrame(data, schema=schema)
+df.show()
 
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.printSchema()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.fillna(27).show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.fillna("27").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.fillna("Vishal").show()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df.fillna("Vishal", subset="name").show()
 
 # COMMAND ----------
 
+df.fillna(23, subset="age").show()
 
+# COMMAND ----------
+
+df.fillna("Male", subset="gender").where(df.id =="4").show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Map Transformation
+
+# COMMAND ----------
+
+# map() trasformation is used to apply any comlex operations like adding a col, updating a column, transforming the data etc.
+
+# The no of input rows == no of output rows
+
+# df needs to be converted to rdd
+
+# narrow transformation bcz shuffling doesn't happen
 
 # COMMAND ----------
 
