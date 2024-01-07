@@ -1162,123 +1162,150 @@ df.fillna("Male", subset="gender").where(df.id =="4").show()
 
 # COMMAND ----------
 
+display(df)
+
+# COMMAND ----------
+
+df = df.fillna(23, subset="age")
+df.show()
+
+# COMMAND ----------
+
+mapped_df = df.rdd.map(lambda x : (x[0], x[1], x[2]+5, x[3]))
+mapped_df.collect()
+
+# COMMAND ----------
+
+new_df = mapped_df.toDF([ "id", "name", "age", "gender"])
+new_df.show()
+
+# COMMAND ----------
+
+def update_age(x):
+    return x.id, x.name, x.age+5, x.gender
+
+# COMMAND ----------
+
+mapped_df = df.rdd.map(lambda x :update_age(x))
+mapped_df.collect()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### cache() & persist()
+
+# COMMAND ----------
+
+# cache() is a shorthand for persist(StorageLevel.MEMORY_ONLY)
+# persist() allows for more control of the storage level and parameters, such as MEMORY_ONLY, MEMORY_AND_DISK, DISK_ONLY,
+# and the option to set replication and serialization
+# cache() and persist() both persist the RDD in memory for faster access, but persist() allows for more options and customization
 
 
 # COMMAND ----------
 
+# Example using cache() function
 
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+mapped_df = df.rdd.map(lambda x :update_age(x))
+mapped_df.cache()
+mapped_df.count()
 
 # COMMAND ----------
 
+# Example using persist() function
 
+from pyspark import StorageLevel
 
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+mapped_df = df.rdd.map(lambda x :update_age(x))
+mapped_df.persist(StorageLevel.DISK_ONLY)
+mapped_df.count()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+mapped_df = df.rdd.map(lambda x :update_age(x))
+mapped_df.persist(StorageLevel.MEMORY_ONLY)
+mapped_df.count()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+mapped_df = df.rdd.map(lambda x :update_age(x))
+mapped_df.persist(StorageLevel.MEMORY_AND_DISK)
+mapped_df.count()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Connect to blob storage using SAS token
 
 # COMMAND ----------
 
+# spark.conf.set(f"fs.azure.sas.{container}.{storageAccountName}.blob.core.windows.net", saskey)
 
-
-# COMMAND ----------
-
-
+# wasbs://{container}@{storageAccountName}.blob.core.windows.net
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+spark.conf.set(f"fs.azure.sas.upstream.vs17storage.blob.core.windows.net", "saskey")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+dbutils.fs.ls("wasbs://upstream@vs17storage.blob.core.windows.net")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+ny_city = spark.read.format("json").option("header", "true").option("multiline", "true").load("wasbs://upstream@vs17storage.blob.core.windows.net/ny-city.json")
+display(ny_city)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+ny_city_transformed = ny_city.fillna("Unknown")
+display(ny_city_transformed)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+ny_city_transformed.write.mode("overwrite").format("parquet").save("wasbs://upstream@vs17storage.blob.core.windows.net/output")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+ny_city_transformed.write.mode("overwrite").format("parquet").save("wasbs://downstream@vs17storage.blob.core.windows.net/output")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+display(spark.read.format("parquet").load("wasbs://downstream@vs17storage.blob.core.windows.net/output/part-00000-tid-303044258587521285-a4aad4ba-68b9-4434-a61b-1a5f2c364a16-8-1.c000.snappy.parquet"))
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC
+# MAGIC #### Connecting to blob using access key
 
+# COMMAND ----------
+
+# config key -> fs.azure.account.key.{storage-account-name}.blob.core.windows.net
+
+
+dbutils.fs.mount(
+    source = "wasbs://{container}@{storageAccountName}.blob.core.windows.net/",
+    mount_point = "mnt/raw_blob",
+    extra_configs = Map("<conf-key>" -> dbutils.secrets.get(
+        scope = "<scope-name>",
+        key = "<key-name>")
+    ) 
+)
+
+# if no scope and key remove map() & secrets
+
+dbutils.fs.mount(
+    source = "wasbs://{container}@{storageAccountName}.blob.core.windows.net/",
+    mount_point = "mnt/raw_blob",
+    extra_configs = {"<conf-key>":"<access_key>"}
+)
+
+# COMMAND ----------
+
+dbutils.fs.unmount()
 
 # COMMAND ----------
 
