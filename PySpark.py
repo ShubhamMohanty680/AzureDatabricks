@@ -1309,31 +1309,70 @@ dbutils.fs.unmount()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Working with APIs
+# MAGIC
+# MAGIC
 
 # COMMAND ----------
 
+import requests,json
 
+def rest_api(url):
+    try:
+        response = requests.get(url)
+        data = response.json()
+        return data
+    except Exception as e:
+        print(f"Failed and got error : {e}")
+        
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+url = "https://pokeapi.co/api/v2/pokemon"
+data = rest_api(url)
+display(data)
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC
+# MAGIC #### Creating dynamic schema
 
+# COMMAND ----------
+
+display(ny_city)
+
+# COMMAND ----------
+
+ny_city.printSchema()
+
+# COMMAND ----------
+
+from pyspark.sql.types import StructType
+
+list_schema = ny_city.dtypes
+fields = []
+
+for i in range(len(list_schema)):
+    if(list_schema[i][1]=="int"):
+        list_schema[i] = (list_schema[i][0], "interger")
+        
+for i in list_schema:
+    if list_schema[i][0] == "location":
+        continue
+    else:
+        fields.append({"metadata":{}, "name":i[0], "nullable":True, "type":i[1]})
+    
+final_schema = StructType.fromJson({"fields":fields, "type":"struct"})
+print(final_schema)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Dynamic delimiter for csv data
 
 # COMMAND ----------
 
