@@ -1376,6 +1376,612 @@ print(final_schema)
 
 # COMMAND ----------
 
+import re
+
+def get_delimiter(path):
+    try:
+        headerlist = sc.textFile(path).take(1)
+        header_str = "".join(headerlist)
+        result = re.search("(,|;|\\|)", header_str)
+        return result.group()
+    except Exception as e:
+        print(f"Error Occured : {e}")
+
+# COMMAND ----------
+
+get_delimiter("/FileStore/tables/flights1.csv")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Creating table with dynamic schema
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create database if not exists testing;
+
+# COMMAND ----------
+
+def delta_table(tablename, schema):
+    try:
+        spark.sql(f"""CREATE TABLE IF NOT EXISTS testing.{tablename} ({schema}) USING DELTA LOCATION '/FIleStore/tables/delta/{tablename}' """)
+        print(f"Table created ; {tablename}")
+    except expection as e:
+        print(f"Error occured: {e}")
+
+# COMMAND ----------
+
+ddl_schema = [
+    {
+        "tablename" : "testing1",
+        "schema" : "ID int, Age int"
+    },
+    {
+        "tablename" : "testing2",
+        "schema" : "ID int, Name string"
+    },
+    {
+        "tablename" : "testing3",
+        "schema" : "ID int, Age int, Email varchar(50)"
+    }
+]
+
+# COMMAND ----------
+
+dbutils.fs.put('/FileStore/tables/ddl_schema.json', str(ddl_schema), True)
+
+# COMMAND ----------
+
+def main():
+    try:
+        df = spark.read.json("/FileStore/tables/ddl_schema.json")
+        for i in df.collect():
+            delta_table(i.tablename, i.schema)
+    except expection as e:
+        print(f"Error occured: {e}")
+
+main()
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC desc table testing.testing1;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC desc table testing.testing2;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC desc table extended testing.testing3;
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Creating demo data using farsante
+
+# COMMAND ----------
+
+!pip install farsante
+
+# COMMAND ----------
+
+import farsante
+help(farsante)
+
+# COMMAND ----------
+
+import farsante as f
+
+df = f.quick_pyspark_df(["first_name", "last_name"], 100)
+df.show()
+
+# COMMAND ----------
+
+from mimesis import Business
+import farsante as f
+b = Business("en")
+df = f.pyspark_df([b.price, b.price_in_btc], 500)
+display(df)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Converting parquet to delta
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+from delta.tables import *
+
+DeltaTable.convertToDelta(spark, "parquet.`/FileStore/tables/airlines`")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+DeltaTable.isDeltaTable(spark, "/FileStore/tables/airlines")
+
+# COMMAND ----------
+
+# IF the data is partitioned pass the column name and the datatype as thrid parameter
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Having limited rows saved in partfile
+
+# COMMAND ----------
+
+df.write.mode("overwrite").format("delta").save("/FileStore/tables/table1")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/table1")
+
+# COMMAND ----------
+
+display(df)
+
+# COMMAND ----------
+
+df.write.mode("overwrite").option("maxRecordsPerFile", 50).format("delta").save("/FileStore/tables/table2")
+
+# COMMAND ----------
+
+dbutils.fs.ls("/FileStore/tables/table2")
+
+# COMMAND ----------
+
+len(dbutils.fs.ls("/FileStore/tables/table2"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Delta Table
+
+# COMMAND ----------
+
+# A delta table is a versioned table that stores data in Parquet format. Delta table provides several advantages over other storage formats, including ACID transactions, data versioning, and automatic schema enforcement. Delta table is optimized for building data pipelines with Apache Spark, providing high performance and efficient write operations to support data ingestion and ETL workloads. Unlike other sources, delta table allows for safe, concurrent writes to a table while maintaining consistency and providing high data integrity. Delta table also provides several APIs and optimizations to improve query performance and reduce the cost of running analytics workloads on large datasets. It can be used for both batch and real time processing
+
+
+# COMMAND ----------
+
+# MAGIC %sql 
+# MAGIC
+# MAGIC create database delta_db;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC use delta_db;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create table parquet_table(
+# MAGIC   id int,
+# MAGIC   name char(20)
+# MAGIC ) using parquet;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create table delta_table(
+# MAGIC   id int,
+# MAGIC   name char(20)
+# MAGIC ) using delta;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC desc extended parquet_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC desc extended delta_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC insert into parquet_table values (1, "Vishal"), (2, "Shyam"), (3, "Ram"), (4,"Sita");
+# MAGIC
+# MAGIC insert into delta_table values (1, "Vishal"), (2, "Shyam"), (3, "Ram"), (4,"Sita");
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from parquet_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC delete from parquet_table where id = 1;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC delete from delta_table where id = 1;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC update parquet_table set name = "Hanuman" where id = 1;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC update delta_table set name = "Hanuman" where id = 2;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create table delta_table2(
+# MAGIC   id int,
+# MAGIC   name char(20)
+# MAGIC ) using delta;
+# MAGIC
+# MAGIC insert into delta_table2 values (5, "Utkarsh"), (6, "Priya"), (7, "Disha"), (4,"Sita");
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC merge into delta_table t1
+# MAGIC using delta_table2 t2
+# MAGIC on t1.id = t2.id
+# MAGIC when matched then update set *
+# MAGIC when not matched then insert *
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC desc history delta_table;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table version as of 1;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table version as of 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table timestamp as of '2024-01-08T14:52:48Z';
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC restore table delta_table to version as of 1;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from delta_table;
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
 
 
 # COMMAND ----------
