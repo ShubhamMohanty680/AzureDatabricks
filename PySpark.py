@@ -1718,97 +1718,159 @@ len(dbutils.fs.ls("/FileStore/tables/table2"))
 
 # COMMAND ----------
 
+# MAGIC %md 
+# MAGIC
+# MAGIC #### Updating multiple rows in delta table
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC create table delta_table(
+# MAGIC   id int,
+# MAGIC   name char(20)
+# MAGIC ) using delta;
+# MAGIC
+# MAGIC insert into delta_table values (1, "Vishal"), (2, "Shyam"), (3, "Ram"), (4,"Sita"), (5, "Utkarsh"), (6, "Priya"), (7, "Disha"), (8,"Geeta");
+
+# COMMAND ----------
+
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("DataFrame Example").getOrCreate()
+
+data = [(1, 'John'), (2, 'Mary'), (3, 'Jane')]
+schema = StructType([StructField('ID', IntegerType(), True), StructField('Name', StringType(), True)])
+df = spark.createDataFrame(data=data, schema=schema)
+
+display(df)
 
 
 # COMMAND ----------
 
+df.createOrReplaceTempView("temp_person");
 
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC merge into delta_table t1
+# MAGIC using temp_person t2
+# MAGIC on t1.id = t2.ID
+# MAGIC when matched then update set t1.name = t2.name;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from delta_table;
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Check if file is empty or not
+
+# COMMAND ----------
+
+display(df)
+
+# COMMAND ----------
+
+def check_df_size(df):
+    try:
+        if df.count() == 0:
+            print("df is empty")
+        else:
+            print(f"Length of dataframe is {df.count()}")
+    except Exception as e:
+        print(f"Error : {e}")
+
+check_df_size(df)
+
+# COMMAND ----------
+
+len(df.collect())
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### input_file_name()
+
+# COMMAND ----------
+
+from pyspark.sql.functions import input_file_name, split, to_date
+
+df = spark.read.option("header", True).format("parquet").load("/FileStore/tables/airlines1/Active=Y/part-00000-tid-104251474602577597-aa83316a-7d20-49a7-be0e-716bc16c741e-167-3.c000.snappy.parquet")
+display(df)
+
+# COMMAND ----------
+
+df1 = df.withColumn("table", split(input_file_name(),"/")[2])
+df1 = df1.withColumn("directory", split(input_file_name(),"/")[3])
+display(df1)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC #### Validate table using Delta Lake
+
+# COMMAND ----------
+
+delta_df = spark.createDataFrame([(1, "Praveen"), (2, "Sahil"), (3, "Ram"), (4,"Sita"), (5, "Utkarsh"), (6, "Priya"), (7, "Disha"), (8,"Geeta")], ["ID", "Name"])
+display(delta_df)
+
+# COMMAND ----------
+
+delta_df.write.mode("overwrite").format("delta").save("/FileStore/tables/delta_table")
 
 # COMMAND ----------
 
 
+from delta.tables import DeltaTable
+from pyspark.sql.functions import col
+
+delta_table = DeltaTable.forPath(spark,"/FileStore/tables/delta_table")
+display(delta_table.history())
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+display(delta_table.history().select("operationMetrics.numOutputRows").where(col("operation")=="WRITE").orderBy(col("timestamp").desc()))
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Broadcasting 
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
+# Broadcasting is a mechanism in Spark that allows a small amount of data called the broadcast variable to be sent from the driver node to all executor nodes so that any task running on those nodes can access that data. This is useful in situations where a large Data Frame or RDD needs to be joined with a relatively small lookup table. Broadcasting the lookup table can help reduce the amount of data shuffled between executor nodes, which in turn can improve performance and reduce network IO. However, broadcasting should be used judiciously as it can cause memory overload if the size of the broadcast variable is too large.
 
 
 # COMMAND ----------
 
+from pyspark.sql.functions import broadcast
 
 
-# COMMAND ----------
+# Sample data for a large DataFrame (consider this as read-only data)
+large_data = [("Alice", 25), ("Bob", 30), ("Charlie", 22), ("David", 35)]
+large_df = spark.createDataFrame(large_data, ["Name", "Age"])
 
+# Sample data for a small DataFrame (consider this as a broadcast variable)
+small_data = [("Alice", "Engineering"), ("Bob", "Marketing"), ("Charlie", "Finance")]
+small_df = spark.createDataFrame(small_data, ["Name", "Department"])
 
+# Broadcast the small DataFrame
+broadcast_small_df = broadcast(small_df)
 
-# COMMAND ----------
+# Perform a join operation with the large DataFrame and the broadcasted small DataFrame
+result_df = large_df.join(broadcast_small_df, "Name", "left_outer")
 
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
+# Show the result
+result_df.show()
 
 
 
