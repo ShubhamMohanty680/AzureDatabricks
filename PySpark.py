@@ -1,9 +1,8 @@
 # Databricks notebook source
 # keeping the cluster alive
 
-sch = "year int, month string, passengers int"
 
-df_input = spark.readStream.option("header", True).schema(sch).csv('/FileStore/tables/airlines')
+df_input = spark.readStream.format("delta").option("header", True).load('/FileStore/tables/airlines')
 display(df_input)
 
 # COMMAND ----------
@@ -1876,7 +1875,9 @@ result_df.show()
 
 # COMMAND ----------
 
-
+# MAGIC %md
+# MAGIC
+# MAGIC #### Accumulator
 
 # COMMAND ----------
 
